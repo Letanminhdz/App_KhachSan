@@ -8,15 +8,17 @@ Dự án ứng dụng di động đặt phòng khách sạn hoàn chỉnh gồm 
 
 ```text
 QL_KhachSanAPP/
-├── app_khachsan/          # Mã nguồn ứng dụng di động Flutter
+├── app_khachsan/          # Mã nguồn ứng dụng di động Flutter (Luxury UI, Provider, Local AI)
+│   ├── README.md          # Tài liệu chi tiết tính năng, thư viện & câu hỏi bảo vệ đồ án
+│   └── README_AI.md       # Báo cáo thuyết minh chuyên sâu thuật toán AI On-Device
 ├── server_api/            # Máy chủ Backend API (Node.js + Express)
 │   ├── Dockerfile         # Image Docker cho API Server
-│   ├── server.js          # Điểm khởi động server
+│   ├── server.js          # Điểm khởi động server & xử lý API
 │   ├── db.js              # Kết nối MySQL Connection Pool
 │   └── package.json       # Thư viện Node.js
 ├── docker-compose.yml     # Khởi chạy MySQL + API cùng lúc bằng 1 lệnh
 ├── database.sql           # File CSDL MySQL (tự động import khi dùng Docker)
-└── README.md              # Tài liệu hướng dẫn cài đặt & vận hành
+└── README.md              # Tài liệu hướng dẫn cài đặt & vận hành hệ sinh thái
 ```
 
 ---
@@ -141,12 +143,13 @@ flutter run
 | `POST` | `/api/dat-phong/khach-vang-lai` | ❌ | Đặt phòng (khách vãng lai) |
 | `POST` | `/api/dat-phong` | ✅ | Đặt phòng (thành viên) |
 | `GET` | `/api/lich-su-dat-phong` | ✅ | Lịch sử đặt phòng cá nhân |
+| `PUT` | `/api/dat-phong/:id/huy` | ✅ | Hủy đơn đặt phòng & giải phóng phòng |
+| `POST` | `/api/dat-phong/:id/dat-dich-vu` | ✅ | Gọi thêm dịch vụ vào phòng |
 
 ---
 
-## 📌 Các chức năng chính của Ứng dụng
+## 📱 Tài Liệu Chi Tiết Ứng Dụng Di Động
 
-1. **Trang chủ & Phòng nghỉ**: Danh sách các hạng phòng *Standard, Superior, Deluxe, Suite*; xem chi tiết, ảnh, tiện ích.
-2. **Tìm kiếm & Đặt phòng**: Bộ lọc thông minh theo ngày nhận/trả và số người; kiểm tra phòng trống thực tế; hỗ trợ cả khách vãng lai lẫn thành viên.
-3. **Tài khoản & Xác thực**: Đăng ký/đăng nhập mã hóa JWT + Bcrypt; xem lịch sử đặt phòng.
-4. **Trợ lý AI Tư vấn phòng (On-Device NLP)**: Chatbot xử lý ngôn ngữ tự nhiên tiếng Việt **100% cục bộ trên thiết bị**, không cần mạng, phản hồi tức thì dưới 15ms.
+Toàn bộ chi tiết về các tính năng, thư viện sử dụng, luồng logic nghiệp vụ và bộ câu hỏi vấn đáp bảo vệ đồ án được trình bày đầy đủ tại:
+* 📖 **[Tài liệu chi tiết Mobile App (app_khachsan/README.md)](./app_khachsan/README.md)**: Ma trận thư viện, phân tích logic chi tiết, cấu trúc thư mục, câu hỏi bảo vệ đồ án.
+* 🤖 **[Báo cáo thuyết minh Thuật toán AI On-Device (app_khachsan/README_AI.md)](./app_khachsan/README_AI.md)**: Thuyết minh chuyên sâu thuật toán NLP On-Device 5 bước chạy nội bộ trên Dart.
