@@ -1,0 +1,68 @@
+services:
+  # =========================================
+  # 1. Cơ sở dữ liệu MySQL (tự import database.sql khi khởi động)
+  # =========================================
+  db:
+    image: mysql:8.0
+    container_name: khachsan_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ql_khachsan
+    volumes:
+      # Auto-import database.sql khi MySQL khởi động lần đầu
+      - ./database.sql:/docker-entrypoint-initdb.d/database.sql:ro
+      # Lưu dữ liệu bền vững vào named volume (không mất khi restart)
+      - db_data:/var/lib/mysql
+    # Port 3306 không cần expose ra host - API kết nối qua mạng nội bộ Docker
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - khachsan_net
+
+  # =========================================
+  # 2. Backend API Server & Admin Web (Node.js Express)
+  # =========================================
+  api:
+    build:
+      context: ./server_api
+      dockerfile: Dockerfile
+    container_name: khachsan_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./server_api/.env
+    environment:
+      PORT: 8000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: ql_khachsan
+      JWT_SECRET: khachsan_jwt_secret_key_2026
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server_api/storage:/app/storage
+      - ./server_api/public:/app/public
+      - ./server_api/server.js:/app/server.js
+      - ./server_api/.env:/app/.env
+    networks:
+      - khachsan_net
+
+# =========================================
+# Named volumes & Networks
+# =========================================
+volumes:
+  db_data:
+    name: khachsan_db_data
+
+networks:
+  khachsan_net:
+    name: khachsan_net

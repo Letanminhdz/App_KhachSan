@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Khách Sạn Grand Luxury</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com">
+    // ================= 5. QUẢN LÝ CÀI ĐẶT KHÁCH SẠN & AI =================
+    async function taiCaiDat() {
+      try {
+        const res = await fetch('/api/settings');
+        const cfg = await res.json();
+        for (const [k, v] of Object.entries(cfg)) {
+          const el = document.getElementById('cfg-' + k);
+          if (el) el.value = v || '';
+        }
+      } catch (err) {
+        console.error('Lỗi tải cài đặt:', err);
+      }
+    }
+
+    async function luuCaiDat(e) {
+      if (e) e.preventDefault();
+      const keys = [
+        'ten_khach_san', 'dia_chi', 'so_dien_thoai', 'email', 'khoang_cach_bien',
+        'gio_check_in', 'gio_check_out', 'ti_le_coc', 'chinh_sach_huy',
+        'buffet_sang_gia', 'buffet_sang_gio', 'xe_san_bay_gia', 'thue_xe_may_gia',
+        'giuong_phu_gia', 'ho_boi_mo_ta', 'bai_do_xe_mo_ta'
+      ];
+      const payload = {};
+      for (const k of keys) {
+        const el = document.getElementById('cfg-' + k);
+        if (el) payload[k] = el.value.trim();
+      }
+
+      try {
+        const res = await fetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Đã lưu cấu hình khách sạn vào CSDL MySQL thành công! Dữ liệu tư vấn AI đã được cập nhật.');
+        } else {
+          throw new Error(data.message || 'Lỗi cập nhật');
+        }
+      } catch (err) {
+        alert('Lỗi lưu cài đặt: ' + err.message);
+      }
+    }
+</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
+    .badge-Moi_Dat { background: #FEF3C7; color: #92400E; }
+    .badge-Da_Xac_Nhan { background: #DBEAFE; color: #1E40AF; }
+    .badge-Da_Nhan_Phong { background: #E0E7FF; color: #3730A3; }
+    .badge-Da_Thanh_Toan { background: #D1FAE5; color: #065F46; }
+    .badge-Da_Huy { background: #FEE2E2; color: #991B1B; }
+    .badge-Cho_Phuc_Vu { background: #FEF3C7; color: #92400E; }
+    .badge-Dang_Phuc_Vu { background: #DBEAFE; color: #1E40AF; }
+    .badge-Hoan_Thanh { background: #D1FAE5; color: #065F46; }
+  </style>
+</head>
+<body class="text-slate-800 flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0">
+    <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-900 font-extrabold text-xl shadow-lg shadow-amber-500/20">
+        <i class="fa-solid fa-hotel"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-white text-base leading-tight">Grand Luxury</h1>
+        <p class="text-xs text-amber-400 font-medium tracking-wide">Quản Trị Hệ Thống</p>
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+      <button onclick="switchTab('don-hang')" id="tab-btn-don-hang" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 bg-amber-500 text-slate-950 shadow-md">
+        <i class="fa-solid fa-receipt text-base"></i>
+        <span>Đơn Đặt Phòng</span>
+        <span id="badge-so-don-moi" class="ml-auto bg-slate-950/20 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+      </button>
+
+      <button onclick="switchTab('yeu-cau-dv')" id="tab-btn-yeu-cau-dv" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200">
+        <i class="fa-solid fa-bell-concierge text-base"></i>
+        <span>Yêu Cầu Tới Phòng</span>
+        <span id="badge-so-yeu-cau-moi" class="ml-auto bg-amber-500/20 text-amber-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+      </button>
+
+      <button onclick="switchTab('hang-phong')" id="tab-btn-hang-phong" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200">
+        <i class="fa-solid fa-door-open text-base"></i>
+        <span>Quản Lý Hạng Phòng</span>
+      </button>
+
+      <button onclick="switchTab('dich-vu')" id="tab-btn-dich-vu" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200">
+        <i class="fa-solid fa-utensils text-base"></i>
+        <span>Quản Lý Dịch Vụ</span>
+      </button>
+
+      <button onclick="switchTab('cai-dat')" id="tab-btn-cai-dat" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200">
+        <i class="fa-solid fa-sliders text-base"></i>
+        <span>Cấu Hình Khách Sạn & AI</span>
+      </button>
+    </nav>
+
+    <!-- Footer Profile -->
+    <div class="p-4 border-t border-slate-800 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 text-sm font-bold">
+        AD
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-white truncate">Quản Trị Viên</p>
+        <p class="text-xs text-slate-400 truncate">admin@grandluxury.com</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <!-- Top Header -->
+    <header class="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 shadow-sm">
+      <div class="flex items-center gap-4">
+        <h2 id="page-title" class="text-xl font-bold text-slate-900">Danh Sách Đơn Đặt Phòng</h2>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="taiLaiDuLieuHienTai()" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold shadow-sm transition">
+          <i class="fa-solid fa-arrows-rotate"></i> Làm mới dữ liệu
+        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          Máy chủ Docker đang chạy
+        </span>
+      </div>
+    </header>
+
+    <!-- Tab Contents Container -->
+    <div class="flex-1 p-8 overflow-y-auto">
+
+      <!-- ================= TAB 1: ĐƠN ĐẶT PHÒNG ================= -->
+      <section id="section-don-hang" class="space-y-6">
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Tổng Đơn</p>
+              <h3 id="stat-tong-don" class="text-2xl font-black text-slate-900 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg font-bold">
+              <i class="fa-solid fa-calendar-check"></i>
+            </div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Chờ Xác Nhận</p>
+              <h3 id="stat-cho-xac-nhan" class="text-2xl font-black text-amber-600 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg font-bold">
+              <i class="fa-solid fa-clock"></i>
+            </div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Đang Lưu Trú</p>
+              <h3 id="stat-dang-o" class="text-2xl font-black text-indigo-600 mt-1">0</h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg font-bold">
+              <i class="fa-solid fa-bed"></i>
+            </div>
+          </div>
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Tổng Doanh Thu</p>
+              <h3 id="stat-doanh-thu" class="text-xl font-black text-emerald-600 mt-1">0 ₫</h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg font-bold">
+              <i class="fa-solid fa-coins"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+            <h3 class="font-bold text-slate-900 text-base">Danh sách đơn đặt gần đây</h3>
+            <div class="flex items-center gap-2">
+              <select id="loc-trang-thai" onchange="locDonDatPhong()" class="text-xs border border-slate-200 rounded-lg px-3 py-1.5 font-medium text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="Moi_Dat">Chờ xác nhận</option>
+                <option value="Da_Xac_Nhan">Đã xác nhận</option>
+                <option value="Da_Nhan_Phong">Đang lưu trú</option>
+                <option value="Da_Thanh_Toan">Hoàn thành</option>
+                <option value="Da_Huy">Đã hủy</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/75 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <th class="py-3.5 px-4">Mã Đơn</th>
+                  <th class="py-3.5 px-4">Khách Hàng</th>
+                  <th class="py-3.5 px-4">Hạng Phòng</th>
+                  <th class="py-3.5 px-4">Nhận - Trả</th>
+                  <th class="py-3.5 px-4 text-right">Tổng Tiền</th>
+                  <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                  <th class="py-3.5 px-4 text-right">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody id="bang-don-dat" class="divide-y divide-slate-100 text-sm">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: YÊU CẦU TỚI PHÒNG ================= -->
+      <section id="section-yeu-cau-dv" class="space-y-6 hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-slate-900 text-base">Danh Sách Yêu Cầu Dịch Vụ Khách Hàng Gọi</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Khách đặt từ mobile app sẽ hiển thị ngay tại đây</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/75 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <th class="py-3.5 px-4">Mã YC</th>
+                  <th class="py-3.5 px-4">Dịch Vụ</th>
+                  <th class="py-3.5 px-4">SL</th>
+                  <th class="py-3.5 px-4">Khách Hàng / SĐT</th>
+                  <th class="py-3.5 px-4">Thời Gian</th>
+                  <th class="py-3.5 px-4 text-right">Thành Tiền</th>
+                  <th class="py-3.5 px-4 text-center">Trạng Thái</th>
+                  <th class="py-3.5 px-4 text-right">Xử Lý</th>
+                </tr>
+              </thead>
+              <tbody id="bang-yeu-cau-dv" class="divide-y divide-slate-100 text-sm">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: QUẢN LÝ HẠNG PHÒNG ================= -->
+      <section id="section-hang-phong" class="space-y-6 hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900 text-lg">Các Hạng Phòng Khách Sạn</h3>
+            <p class="text-xs text-slate-500">Quản lý giá, sức chứa và hình ảnh hiển thị trên ứng dụng</p>
+          </div>
+          <button onclick="moModalThemPhong()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md transition">
+            <i class="fa-solid fa-plus"></i> Thêm Hạng Phòng Mới
+          </button>
+        </div>
+
+        <div id="danh-sach-hang-phong-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Dynamically loaded -->
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: QUẢN LÝ DỊCH VỤ ================= -->
+      <section id="section-dich-vu" class="space-y-6 hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-900 text-lg">Danh Mục Dịch Vụ Khách Sạn</h3>
+            <p class="text-xs text-slate-500">Các dịch vụ ăn uống, spa, giặt ủi phục vụ tới tận phòng</p>
+          </div>
+          <button onclick="moModalThemDichVu()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md transition">
+            <i class="fa-solid fa-plus"></i> Thêm Dịch Vụ Mới
+          </button>
+        </div>
+
+        <div id="danh-sach-dich-vu-cards" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <!-- Dynamically loaded -->
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+      <!-- ================= TAB 5: CẤU HÌNH KHÁCH SẠN & AI ================= -->
+      <section id="section-cai-dat" class="space-y-6 hidden">
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 max-w-4xl space-y-6">
+          <div class="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <h3 class="text-lg font-bold text-slate-900">Thông Tin Khách Sạn & Dữ Liệu Tư Vấn AI</h3>
+              <p class="text-xs text-slate-500 mt-1">Dữ liệu lưu trực tiếp vào CSDL MySQL bảng cai_dat và được cả AI Cục bộ lẫn Cloud AI lấy theo thời gian thực để trả lời khách hàng.</p>
+            </div>
+            <button onclick="luuCaiDat(event)" class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md flex items-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình Vào CSDL
+            </button>
+          </div>
+
+          <form id="form-cai-dat" onsubmit="luuCaiDat(event)" class="space-y-6">
+            <!-- Nhóm 1: Cơ bản -->
+            <div>
+              <h4 class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5"><i class="fa-solid fa-hotel"></i> Thông tin cơ bản & liên hệ</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên khách sạn</label>
+                  <input type="text" id="cfg-ten_khach_san" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hotline lễ tân (24/24)</label>
+                  <input type="text" id="cfg-so_dien_thoai" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Địa chỉ khách sạn</label>
+                  <input type="text" id="cfg-dia_chi" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email hỗ trợ</label>
+                  <input type="text" id="cfg-email" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Khoảng cách ra biển</label>
+                  <input type="text" id="cfg-khoang_cach_bien" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+              </div>
+            </div>
+
+            <!-- Nhóm 2: Chính sách -->
+            <div class="pt-4 border-t border-slate-100">
+              <h4 class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5"><i class="fa-solid fa-clock"></i> Giờ giấc & chính sách đặt phòng</h4>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giờ Check-in (Nhận phòng)</label>
+                  <input type="text" id="cfg-gio_check_in" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giờ Check-out (Trả phòng)</label>
+                  <input type="text" id="cfg-gio_check_out" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tỷ lệ đặt cọc tối thiểu (%)</label>
+                  <input type="number" id="cfg-ti_le_coc" min="0" max="100" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div class="md:col-span-3">
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Chính sách hủy / đổi lịch phòng</label>
+                  <input type="text" id="cfg-chinh_sach_huy" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+              </div>
+            </div>
+
+            <!-- Nhóm 3: Dịch vụ & Tiện ích -->
+            <div class="pt-4 border-t border-slate-100">
+              <h4 class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5"><i class="fa-solid fa-bell-concierge"></i> Bảng giá dịch vụ bổ sung & Tiện ích</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giá vé Buffet sáng (₫/người)</label>
+                  <input type="number" id="cfg-buffet_sang_gia" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giờ phục vụ Buffet sáng</label>
+                  <input type="text" id="cfg-buffet_sang_gio" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giá xe đưa đón sân bay 2 chiều (₫)</label>
+                  <input type="number" id="cfg-xe_san_bay_gia" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giá thuê xe máy du lịch (₫/ngày)</label>
+                  <input type="number" id="cfg-thue_xe_may_gia" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Phí kê giường phụ Extra Bed (₫/đêm)</label>
+                  <input type="number" id="cfg-giuong_phu_gia" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tình trạng hồ bơi</label>
+                  <input type="text" id="cfg-ho_boi_mo_ta" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mô tả bãi đỗ xe</label>
+                  <input type="text" id="cfg-bai_do_xe_mo_ta" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-amber-500">
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+
+  <!-- ================= MODAL THÊM HẠNG PHÒNG ================= -->
+  <!-- Modal Nhận Phòng - Chọn Phòng -->
+  <div id="modal-nhan-phong" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div>
+          <h4 class="font-bold text-slate-900 text-lg">🗝️ Nhận Phòng</h4>
+          <p class="text-slate-500 text-xs mt-0.5">Đơn <span id="checkin-don-id" class="font-bold text-indigo-600"></span> — Cần <span id="checkin-so-luong" class="font-bold text-indigo-600"></span></p>
+        </div>
+        <button onclick="document.getElementById('modal-nhan-phong').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-sm text-slate-600 mb-3 font-medium">Chọn phòng trống để gán cho khách:</p>
+      <div id="checkin-phong-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 mb-4"></div>
+      <div class="flex gap-3 justify-end">
+        <button onclick="document.getElementById('modal-nhan-phong').classList.add('hidden')" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-sm">Hủy</button>
+        <button onclick="xacNhanNhanPhong()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm transition">
+          <i class="fa-solid fa-key mr-1.5"></i>Xác Nhận Nhận Phòng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-them-phong" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h4 class="font-bold text-slate-900 text-lg">Thêm Hạng Phòng Mới</h4>
+        <button onclick="dongModal('modal-them-phong')" class="text-slate-400 hover:text-slate-700 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-them-phong" onsubmit="xuLyThemPhong(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên Hạng Phòng</label>
+          <input type="text" id="phong-ten" required placeholder="VD: Executive Suite" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giá / Đêm (₫)</label>
+            <input type="number" id="phong-gia" required placeholder="VD: 1500000" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sức Chứa (Người)</label>
+            <input type="number" id="phong-succhua" required value="2" min="1" max="10" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Đường Dẫn Hình Ảnh (URL hoặc storage/)</label>
+          <input type="text" id="phong-anh" value="storage/rooms/suite.jpg" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tiện Ích Hạng Phòng (phân cách bằng dấu phẩy)</label>
+          <input type="text" id="phong-tienich" placeholder="Wifi miễn phí, Điều hòa, Smart TV, Bồn tắm..." value="Wifi miễn phí, Điều hòa, Tivi, Bàn làm việc" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <p class="text-[11px] text-slate-400 mt-1">VD: Wifi miễn phí, Điều hòa, Smart TV 55 inch, Ban công, Bồn tắm nằm</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mô Tả Hạng Phòng</label>
+          <textarea id="phong-mota" rows="2" placeholder="Không gian nghỉ dưỡng sang trọng..." class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="dongModal('modal-them-phong')" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-sm">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md">Lưu Hạng Phòng</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL THÊM DỊCH VỤ ================= -->
+  <div id="modal-them-dichvu" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h4 class="font-bold text-slate-900 text-lg">Thêm Dịch Vụ Mới</h4>
+        <button onclick="dongModal('modal-them-dichvu')" class="text-slate-400 hover:text-slate-700 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-them-dichvu" onsubmit="xuLyThemDichVu(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên Dịch Vụ / Món Ăn</label>
+          <input type="text" id="dv-ten" required placeholder="VD: Bữa Sáng Buffet Kiểu Âu" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Đơn Giá (₫)</label>
+          <input type="number" id="dv-gia" required placeholder="VD: 250000" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hình Ảnh (URL hoặc storage/)</label>
+          <input type="text" id="dv-anh" value="storage/defaults/service.jpg" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="dongModal('modal-them-dichvu')" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-sm">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md">Lưu Dịch Vụ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL SỬA HẠNG PHÒNG ================= -->
+  <div id="modal-sua-phong" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h4 class="font-bold text-slate-900 text-lg">Chỉnh Sửa Hạng Phòng</h4>
+        <button onclick="dongModal('modal-sua-phong')" class="text-slate-400 hover:text-slate-700 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-sua-phong" onsubmit="xuLySuaPhong(event)" class="space-y-3">
+        <input type="hidden" id="sua-phong-id">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên Hạng Phòng</label>
+          <input type="text" id="sua-phong-ten" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Giá / Đêm (₫)</label>
+            <input type="number" id="sua-phong-gia" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sức Chứa (Người)</label>
+            <input type="number" id="sua-phong-succhua" required min="1" max="10" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Đường Dẫn Hình Ảnh</label>
+          <input type="text" id="sua-phong-anh" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tiện Ích Hạng Phòng (phân cách bằng dấu phẩy)</label>
+          <input type="text" id="sua-phong-tienich" placeholder="Wifi miễn phí, Điều hòa, Smart TV, Bồn tắm..." class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <p class="text-[11px] text-slate-400 mt-1">VD: Wifi miễn phí, Điều hòa, Smart TV 55 inch, Ban công, Bồn tắm nằm</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mô Tả Hạng Phòng</label>
+          <textarea id="sua-phong-mota" rows="2" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="dongModal('modal-sua-phong')" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-sm">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md">Cập Nhật Hạng Phòng</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL SỬA DỊCH VỤ ================= -->
+  <div id="modal-sua-dichvu" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h4 class="font-bold text-slate-900 text-lg">Chỉnh Sửa Dịch Vụ</h4>
+        <button onclick="dongModal('modal-sua-dichvu')" class="text-slate-400 hover:text-slate-700 text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-sua-dichvu" onsubmit="xuLySuaDichVu(event)" class="space-y-3">
+        <input type="hidden" id="sua-dv-id">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên Dịch Vụ / Món Ăn</label>
+          <input type="text" id="sua-dv-ten" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Đơn Giá (₫)</label>
+          <input type="number" id="sua-dv-gia" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hình Ảnh</label>
+          <input type="text" id="sua-dv-anh" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="dongModal('modal-sua-dichvu')" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-sm">Hủy</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-md">Cập Nhật Dịch Vụ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let tatCaDonHang = [];
+    let tatCaHangPhong = [];
+    let tatCaDichVu = [];
+    let tabHienTai = 'don-hang';
+
+    function dinhDangTien(soTien) {
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(soTien || 0);
+    }
+
+    function switchTab(tabId) {
+      tabHienTai = tabId;
+      ['don-hang', 'yeu-cau-dv', 'hang-phong', 'dich-vu', 'cai-dat'].forEach(id => {
+        document.getElementById(`section-${id}`).classList.add('hidden');
+        const btn = document.getElementById(`tab-btn-${id}`);
+        btn.className = "nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200";
+      });
+
+      document.getElementById(`section-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      activeBtn.className = "nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 bg-amber-500 text-slate-950 shadow-md";
+
+      const titles = {
+        'don-hang': 'Danh Sách Đơn Đặt Phòng',
+        'yeu-cau-dv': 'Yêu Cầu Gọi Dịch Vụ Tới Phòng',
+        'hang-phong': 'Quản Lý Hạng Phòng Khách Sạn',
+        'dich-vu': 'Quản Lý Dịch Vụ Khách Sạn'
+      };
+      document.getElementById('page-title').innerText = titles[tabId];
+      taiLaiDuLieuHienTai();
+    }
+
+    function taiLaiDuLieuHienTai() {
+      if (tabHienTai === 'don-hang') taiDonDatPhong();
+      if (tabHienTai === 'yeu-cau-dv') taiYeuCauDichVu();
+      if (tabHienTai === 'hang-phong') taiHangPhong();
+      if (tabHienTai === 'dich-vu') taiDichVu();
+    }
+
+    // ================= 1. ĐƠN ĐẶT PHÒNG =================
+    async function taiDonDatPhong() {
+      try {
+        const res = await fetch('/api/admin/dat-phong');
+        tatCaDonHang = await res.json();
+
+        // Stats
+        document.getElementById('stat-tong-don').innerText = tatCaDonHang.length;
+        const choXacNhan = tatCaDonHang.filter(d => d.trang_thai === 'Moi_Dat').length;
+        document.getElementById('stat-cho-xac-nhan').innerText = choXacNhan;
+        document.getElementById('badge-so-don-moi').innerText = choXacNhan;
+        document.getElementById('stat-dang-o').innerText = tatCaDonHang.filter(d => d.trang_thai === 'Da_Nhan_Phong').length;
+
+        const tongTien = tatCaDonHang.reduce((tong, d) => tong + parseFloat(d.tong_tien || 0), 0);
+        document.getElementById('stat-doanh-thu').innerText = dinhDangTien(tongTien);
+
+        locDonDatPhong();
+      } catch (err) {
+        console.error('Lỗi tải đơn:', err);
+      }
+    }
+
+    function locDonDatPhong() {
+      const loc = document.getElementById('loc-trang-thai').value;
+      const danhSach = loc === 'ALL' ? tatCaDonHang : tatCaDonHang.filter(d => d.trang_thai === loc);
+
+      const tbody = document.getElementById('bang-don-dat');
+      if (danhSach.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Không có đơn đặt phòng nào</td></tr>`;
+        return;
+      }
+
+      const tenTrangThai = {
+        'Moi_Dat': 'Chờ xác nhận',
+        'Da_Xac_Nhan': 'Đã xác nhận',
+        'Da_Nhan_Phong': 'Đang lưu trú',
+        'Da_Thanh_Toan': 'Hoàn thành',
+        'Da_Huy': 'Đã hủy'
+      };
+
+      tbody.innerHTML = danhSach.map(d => {
+        const dNhan = new Date(d.ngay_nhan_phong).toLocaleDateString('vi-VN');
+        const dTra = new Date(d.ngay_tra_phong).toLocaleDateString('vi-VN');
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4 font-bold text-slate-900">#${d.id}</td>
+            <td class="py-3 px-4">
+              <p class="font-bold text-slate-900">${d.ten_khach_hang || 'Khách vãng lai'}</p>
+              <p class="text-xs text-slate-500">${d.sdt_khach_hang || 'N/A'}</p>
+            </td>
+            <td class="py-3 px-4">
+              <span class="font-semibold text-slate-800">${d.ten_loai_phong_khi_dat || d.ten_loai || 'Standard'}</span>
+              <span class="text-xs text-slate-500 block">SL: ${d.so_luong_phong} phòng</span>
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-600">
+              <div><i class="fa-regular fa-calendar-check text-emerald-500 mr-1"></i>${dNhan}</div>
+              <div class="mt-0.5"><i class="fa-regular fa-calendar-xmark text-rose-500 mr-1"></i>${dTra}</div>
+            </td>
+            <td class="py-3 px-4 text-right font-bold text-amber-600">
+              ${dinhDangTien(d.tong_tien)}
+            </td>
+            <td class="py-3 px-4 text-center">
+              <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold badge-${d.trang_thai}">
+                ${tenTrangThai[d.trang_thai] || d.trang_thai}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right space-x-1">
+              ${d.trang_thai === 'Moi_Dat' ? `
+                <button onclick="capNhatTrangThaiDon(${d.id}, 'Da_Xac_Nhan')" title="Xác nhận đơn" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm">
+                  <i class="fa-solid fa-check mr-1"></i>Xác Nhận
+                </button>
+              ` : ''}
+              ${d.trang_thai === 'Da_Xac_Nhan' ? `
+                <button onclick="moModalNhanPhong(${d.id}, ${d.id_loai_phong}, ${d.so_luong_phong})" title="Khách nhận phòng" class="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm">
+                  <i class="fa-solid fa-key mr-1"></i>Nhận Phòng
+                </button>
+              ` : ''}
+              ${d.trang_thai === 'Da_Nhan_Phong' ? `
+                <button onclick="capNhatTrangThaiDon(${d.id}, 'Da_Thanh_Toan')" title="Hoàn thành trả phòng" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm">
+                  <i class="fa-solid fa-flag-checkered mr-1"></i>Hoàn Thành
+                </button>
+              ` : ''}
+              ${d.trang_thai !== 'Da_Huy' && d.trang_thai !== 'Da_Thanh_Toan' ? `
+                <button onclick="capNhatTrangThaiDon(${d.id}, 'Da_Huy')" title="Hủy đơn" class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-600 text-xs font-semibold transition">
+                  <i class="fa-solid fa-ban"></i>
+                </button>
+              ` : ''}
+              <button onclick="xoaDonDatPhong(${d.id})" title="Xóa vĩnh viễn đơn" class="px-2 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold transition">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function capNhatTrangThaiDon(id, trangThaiMoi, idsPhong = null) {
+      try {
+        const body = { trang_thai: trangThaiMoi };
+        if (idsPhong && idsPhong.length > 0) body.ids_phong = idsPhong;
+        const res = await fetch(`/api/admin/dat-phong/${id}/trang-thai`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi cập nhật');
+        taiDonDatPhong();
+      } catch (err) {
+        alert('Lỗi cập nhật: ' + err.message);
+      }
+    }
+
+    // Modal chọn phòng khi nhận phòng
+    let _checkinDonId = null;
+    let _checkinSoLuong = 0;
+    let _checkinLoaiPhongId = null;
+
+    async function moModalNhanPhong(idDon, idLoaiPhong, soLuong) {
+      _checkinDonId = idDon;
+      _checkinSoLuong = soLuong;
+      _checkinLoaiPhongId = idLoaiPhong;
+
+      document.getElementById('checkin-don-id').textContent = '#' + idDon;
+      document.getElementById('checkin-so-luong').textContent = soLuong + ' phòng';
+      document.getElementById('checkin-phong-list').innerHTML = '<p class="text-slate-400 text-sm">Đang tải...</p>';
+      document.getElementById('modal-nhan-phong').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/api/admin/phong-trong/${idLoaiPhong}`);
+        const phongs = await res.json();
+        const list = document.getElementById('checkin-phong-list');
+
+        if (phongs.length === 0) {
+          list.innerHTML = '<p class="text-amber-600 font-semibold text-sm">⚠ Không còn phòng trống hạng này!</p>';
+          return;
+        }
+
+        list.innerHTML = phongs.map(p => `
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer transition">
+            <input type="checkbox" value="${p.id}" class="checkin-phong-cb w-4 h-4 accent-indigo-600">
+            <span class="font-bold text-slate-700">Phòng ${p.so_phong}</span>
+            ${p.ten_tang ? `<span class="text-xs text-slate-400">${p.ten_tang}</span>` : ''}
+          </label>
+        `).join('');
+      } catch (err) {
+        document.getElementById('checkin-phong-list').innerHTML = '<p class="text-red-500 text-sm">Lỗi tải phòng</p>';
+      }
+    }
+
+    async function xacNhanNhanPhong() {
+      const checked = [...document.querySelectorAll('.checkin-phong-cb:checked')];
+      if (checked.length === 0) { alert('Vui lòng chọn ít nhất 1 phòng!'); return; }
+      if (checked.length !== _checkinSoLuong) {
+        if (!confirm(`Đơn yêu cầu ${_checkinSoLuong} phòng nhưng bạn chọn ${checked.length}. Tiếp tục?`)) return;
+      }
+      const idsPhong = checked.map(cb => parseInt(cb.value));
+      document.getElementById('modal-nhan-phong').classList.add('hidden');
+      await capNhatTrangThaiDon(_checkinDonId, 'Da_Nhan_Phong', idsPhong);
+    }
+
+    async function xoaDonDatPhong(id) {
+      if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn đơn đặt phòng #${id} không?`)) return;
+      try {
+        const res = await fetch(`/api/admin/dat-phong/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi khi xóa đơn');
+        taiDonDatPhong();
+      } catch (err) {
+        alert('Lỗi xóa: ' + err.message);
+      }
+    }
+
+    // ================= 2. YÊU CẦU TỚI PHÒNG =================
+    async function taiYeuCauDichVu() {
+      try {
+        const res = await fetch('/api/admin/yeu-cau-dich-vu');
+        const ds = await res.json();
+        const tbody = document.getElementById('bang-yeu-cau-dv');
+
+        const choPhucVu = ds.filter(y => y.trang_thai === 'Cho_Phuc_Vu').length;
+        document.getElementById('badge-so-yeu-cau-moi').innerText = choPhucVu;
+
+        if (ds.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">Chưa có yêu cầu gọi dịch vụ nào</td></tr>`;
+          return;
+        }
+
+        const tenTrangThai = {
+          'Cho_Phuc_Vu': 'Chờ phục vụ',
+          'Dang_Phuc_Vu': 'Đang phục vụ',
+          'Hoan_Thanh': 'Đã hoàn thành',
+          'Da_Huy': 'Đã hủy'
+        };
+
+        tbody.innerHTML = ds.map(y => {
+          const tGian = new Date(y.thoi_gian_su_dung || y.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+          return `
+            <tr class="hover:bg-slate-50/80 transition">
+              <td class="py-3 px-4 font-bold text-slate-900">#${y.id}</td>
+              <td class="py-3 px-4 font-bold text-slate-800">${y.ten_dich_vu}</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-100 font-bold">${y.so_luong}</span></td>
+              <td class="py-3 px-4">
+                <p class="font-semibold text-slate-900">${y.ten_khach_hang || 'Khách phòng'}</p>
+                <p class="text-xs text-slate-500">${y.sdt_khach_hang || 'SĐT: N/A'} ${y.so_phong ? '• Phòng ' + y.so_phong : ''}</p>
+              </td>
+              <td class="py-3 px-4 text-xs text-slate-500">${tGian}</td>
+              <td class="py-3 px-4 text-right font-bold text-amber-600">${dinhDangTien(y.tong_tien)}</td>
+              <td class="py-3 px-4 text-center">
+                <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold badge-${y.trang_thai}">
+                  ${tenTrangThai[y.trang_thai] || y.trang_thai}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-right space-x-1">
+                ${y.trang_thai === 'Cho_Phuc_Vu' ? `
+                  <button onclick="doiTrangThaiYeuCau(${y.id}, 'Dang_Phuc_Vu')" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">
+                    Phục vụ ngay
+                  </button>
+                ` : ''}
+                ${y.trang_thai === 'Dang_Phuc_Vu' ? `
+                  <button onclick="doiTrangThaiYeuCau(${y.id}, 'Hoan_Thanh')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">
+                    Hoàn tất
+                  </button>
+                ` : ''}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function doiTrangThaiYeuCau(id, trangThai) {
+      await fetch(`/api/admin/yeu-cau-dich-vu/${id}/trang-thai`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trang_thai: trangThai })
+      });
+      taiYeuCauDichVu();
+    }
+
+    // ================= 3. QUẢN LÝ HẠNG PHÒNG =================
+    async function taiHangPhong() {
+      try {
+        const res = await fetch('/api/admin/loai-phong');
+        tatCaHangPhong = await res.json();
+        const container = document.getElementById('danh-sach-hang-phong-cards');
+
+        container.innerHTML = tatCaHangPhong.map(p => {
+          const anh = p.hinh_anh ? (p.hinh_anh.startsWith('http') ? p.hinh_anh : '/' + p.hinh_anh) : '/storage/defaults/room_default.jpg';
+          return `
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+              <div class="h-44 bg-slate-100 relative">
+                <img src="${anh}" alt="${p.ten_loai}" class="w-full h-full object-cover">
+                <span class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                  <i class="fa-solid fa-user-group mr-1"></i>${p.suc_chua} Người
+                </span>
+              </div>
+              <div class="p-5 flex-1 flex flex-col justify-between">
+                <div>
+                  <h4 class="font-bold text-slate-900 text-base">${p.ten_loai}</h4>
+                  <p class="text-xs text-slate-500 mt-1 line-clamp-2">${p.mo_ta || 'Không gian tiêu chuẩn sang trọng.'}</p>
+                  <div class="mt-2.5 flex flex-wrap gap-1">
+                    ${(Array.isArray(p.tien_ich) ? p.tien_ich : []).slice(0, 4).map(t => `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium"><i class="fa-solid fa-check text-amber-500 text-[10px] mr-1"></i>${t}</span>`).join('')}
+                    ${(Array.isArray(p.tien_ich) && p.tien_ich.length > 4) ? `<span class="px-1.5 py-0.5 bg-slate-100 text-slate-400 rounded-md text-[10px] font-semibold">+${p.tien_ich.length - 4}</span>` : ''}
+                  </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span class="text-xs text-slate-400 block font-semibold">Đơn giá / đêm</span>
+                    <span class="text-base font-extrabold text-amber-600">${dinhDangTien(p.gia_co_ban)}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <button onclick="moModalSuaPhong(${p.id})" class="p-2 text-slate-400 hover:text-amber-600 transition" title="Sửa hạng phòng">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button onclick="xoaHangPhong(${p.id})" class="p-2 text-slate-400 hover:text-rose-600 transition" title="Xóa hạng phòng">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function moModalSuaPhong(id) {
+      const p = tatCaHangPhong.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('sua-phong-id').value = p.id;
+      document.getElementById('sua-phong-ten').value = p.ten_loai || '';
+      document.getElementById('sua-phong-gia').value = parseInt(p.gia_co_ban) || 0;
+      document.getElementById('sua-phong-succhua').value = p.suc_chua || 2;
+      document.getElementById('sua-phong-anh').value = p.hinh_anh || '';
+      document.getElementById('sua-phong-mota').value = p.mo_ta || '';
+      let tienIchVal = '';
+      if (Array.isArray(p.tien_ich)) {
+        tienIchVal = p.tien_ich.join(', ');
+      } else if (typeof p.tien_ich === 'string') {
+        try {
+          const parsed = JSON.parse(p.tien_ich);
+          tienIchVal = Array.isArray(parsed) ? parsed.join(', ') : p.tien_ich;
+        } catch (_) {
+          tienIchVal = p.tien_ich;
+        }
+      }
+      document.getElementById('sua-phong-tienich').value = tienIchVal;
+      document.getElementById('modal-sua-phong').classList.remove('hidden');
+    }
+
+    async function xuLySuaPhong(e) {
+      e.preventDefault();
+      const id = document.getElementById('sua-phong-id').value;
+      const rawTienIch = document.getElementById('sua-phong-tienich').value;
+      const payload = {
+        ten_loai: document.getElementById('sua-phong-ten').value,
+        gia_co_ban: document.getElementById('sua-phong-gia').value,
+        suc_chua: document.getElementById('sua-phong-succhua').value,
+        hinh_anh: document.getElementById('sua-phong-anh').value,
+        mo_ta: document.getElementById('sua-phong-mota').value,
+        tien_ich: rawTienIch.split(',').map(s => s.trim()).filter(Boolean),
+      };
+
+      try {
+        const res = await fetch(`/api/admin/loai-phong/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi cập nhật hạng phòng');
+        dongModal('modal-sua-phong');
+        taiHangPhong();
+      } catch (err) {
+        alert('Lỗi: ' + err.message);
+      }
+    }
+
+    function moModalThemPhong() { document.getElementById('modal-them-phong').classList.remove('hidden'); }
+    function dongModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    async function xuLyThemPhong(e) {
+      e.preventDefault();
+      const rawTienIch = document.getElementById('phong-tienich').value;
+      const payload = {
+        ten_loai: document.getElementById('phong-ten').value,
+        gia_co_ban: document.getElementById('phong-gia').value,
+        suc_chua: document.getElementById('phong-succhua').value,
+        hinh_anh: document.getElementById('phong-anh').value,
+        mo_ta: document.getElementById('phong-mota').value,
+        tien_ich: rawTienIch.split(',').map(s => s.trim()).filter(Boolean),
+      };
+
+      await fetch('/api/admin/loai-phong', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      dongModal('modal-them-phong');
+      document.getElementById('form-them-phong').reset();
+      taiHangPhong();
+    }
+
+    async function xoaHangPhong(id) {
+      if (!confirm('Bạn có chắc chắn muốn xóa hạng phòng này không?')) return;
+      try {
+        const res = await fetch(`/api/admin/loai-phong/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi xóa hạng phòng');
+        taiHangPhong();
+      } catch (err) {
+        alert('Lỗi xóa: ' + err.message);
+      }
+    }
+
+    // ================= 4. QUẢN LÝ DỊCH VỤ =================
+    async function taiDichVu() {
+      try {
+        const res = await fetch('/api/admin/dich-vu');
+        tatCaDichVu = await res.json();
+        const container = document.getElementById('danh-sach-dich-vu-cards');
+
+        container.innerHTML = tatCaDichVu.map(d => {
+          const anh = d.hinh_anh ? (d.hinh_anh.startsWith('http') ? d.hinh_anh : '/' + d.hinh_anh) : '/storage/defaults/service.jpg';
+          return `
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+              <div class="h-36 bg-slate-100 relative">
+                <img src="${anh}" alt="${d.ten_dich_vu}" class="w-full h-full object-cover">
+              </div>
+              <div class="p-4 flex-1 flex flex-col justify-between">
+                <h4 class="font-bold text-slate-900 text-sm">${d.ten_dich_vu}</h4>
+                <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                  <span class="text-sm font-extrabold text-amber-600">${dinhDangTien(d.gia)}</span>
+                  <div class="flex items-center gap-1">
+                    <button onclick="moModalSuaDichVu(${d.id})" class="p-1.5 text-slate-400 hover:text-amber-600 transition" title="Sửa dịch vụ">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button onclick="xoaDichVu(${d.id})" class="p-1.5 text-slate-400 hover:text-rose-600 transition" title="Xóa dịch vụ">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function moModalSuaDichVu(id) {
+      const d = tatCaDichVu.find(x => x.id === id);
+      if (!d) return;
+      document.getElementById('sua-dv-id').value = d.id;
+      document.getElementById('sua-dv-ten').value = d.ten_dich_vu || '';
+      document.getElementById('sua-dv-gia').value = parseInt(d.gia) || 0;
+      document.getElementById('sua-dv-anh').value = d.hinh_anh || '';
+      document.getElementById('modal-sua-dichvu').classList.remove('hidden');
+    }
+
+    async function xuLySuaDichVu(e) {
+      e.preventDefault();
+      const id = document.getElementById('sua-dv-id').value;
+      const payload = {
+        ten_dich_vu: document.getElementById('sua-dv-ten').value,
+        gia: document.getElementById('sua-dv-gia').value,
+        hinh_anh: document.getElementById('sua-dv-anh').value,
+      };
+
+      try {
+        const res = await fetch(`/api/admin/dich-vu/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi cập nhật dịch vụ');
+        dongModal('modal-sua-dichvu');
+        taiDichVu();
+      } catch (err) {
+        alert('Lỗi: ' + err.message);
+      }
+    }
+
+    function moModalThemDichVu() { document.getElementById('modal-them-dichvu').classList.remove('hidden'); }
+
+    async function xuLyThemDichVu(e) {
+      e.preventDefault();
+      const payload = {
+        ten_dich_vu: document.getElementById('dv-ten').value,
+        gia: document.getElementById('dv-gia').value,
+        hinh_anh: document.getElementById('dv-anh').value,
+      };
+
+      await fetch('/api/admin/dich-vu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      dongModal('modal-them-dichvu');
+      document.getElementById('form-them-dichvu').reset();
+      taiDichVu();
+    }
+
+    async function xoaDichVu(id) {
+      if (!confirm('Bạn có chắc chắn muốn xóa dịch vụ này không?')) return;
+      try {
+        const res = await fetch(`/api/admin/dich-vu/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi xóa dịch vụ');
+        taiDichVu();
+      } catch (err) {
+        alert('Lỗi xóa: ' + err.message);
+      }
+    }
+
+    // Khoi chay mac dinh
+    taiDonDatPhong();
+  
+    // ================= 5. QUẢN LÝ CÀI ĐẶT KHÁCH SẠN & AI =================
+    async function taiCaiDat() {
+      try {
+        const res = await fetch('/api/settings');
+        const cfg = await res.json();
+        for (const [k, v] of Object.entries(cfg)) {
+          const el = document.getElementById('cfg-' + k);
+          if (el) el.value = v || '';
+        }
+      } catch (err) {
+        console.error('Lỗi tải cài đặt:', err);
+      }
+    }
+
+    async function luuCaiDat(e) {
+      if (e) e.preventDefault();
+      const keys = [
+        'ten_khach_san', 'dia_chi', 'so_dien_thoai', 'email', 'khoang_cach_bien',
+        'gio_check_in', 'gio_check_out', 'ti_le_coc', 'chinh_sach_huy',
+        'buffet_sang_gia', 'buffet_sang_gio', 'xe_san_bay_gia', 'thue_xe_may_gia',
+        'giuong_phu_gia', 'ho_boi_mo_ta', 'bai_do_xe_mo_ta'
+      ];
+      const payload = {};
+      for (const k of keys) {
+        const el = document.getElementById('cfg-' + k);
+        if (el) payload[k] = el.value.trim();
+      }
+
+      try {
+        const res = await fetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Đã lưu cấu hình khách sạn vào CSDL MySQL thành công! Dữ liệu tư vấn AI đã được cập nhật.');
+        } else {
+          throw new Error(data.message || 'Lỗi cập nhật');
+        }
+      } catch (err) {
+        alert('Lỗi lưu cài đặt: ' + err.message);
+      }
+    }
+</script>
+</body>
+</html>
