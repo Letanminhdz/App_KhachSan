@@ -53,4 +53,14 @@ class DatPhongDichVu {
     }
     throw Exception('Không thể tải chi tiết đơn đặt phòng');
   }
+
+  /// Khách hàng yêu cầu hủy đơn đặt phòng (khi đang ở trạng thái Chờ xác nhận hoặc Đã xác nhận)
+  static Future<bool> huyDatPhong(int idDon) async {
+    final phanHoi = await ApiDichVu.putDuLieu('dat-phong/$idDon/huy', {}, canToken: true);
+    if (phanHoi is Map<String, dynamic> && phanHoi['success'] == true) {
+      return true;
+    }
+    final thongBao = phanHoi is Map ? phanHoi['message'] : null;
+    throw Exception(thongBao ?? 'Không thể hủy đơn đặt phòng');
+  }
 }

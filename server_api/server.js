@@ -521,6 +521,64 @@ app.get('/api/dat-phong/:id/chi-tiet', async (req, res) => {
   }
 });
 
+// 11.3 Khách hàng tự hủy đơn đặt phòng (Mục CRUD: Hủy đơn)
+app.put('/api/dat-phong/:id/huy', xacThucToken, async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const idDon = req.params.id;
+    const userId = req.user.id;
+
+    // Kiểm tra đơn đặt phòng
+    const [donRows] = await conn.execute(
+      "SELECT * FROM dat_phong WHERE id = ? AND id_tai_khoan = ?",
+      [idDon, userId]
+    );
+
+    if (donRows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ message: "Không tìm thấy đơn đặt phòng của bạn" });
+    }
+
+    const don = donRows[0];
+    if (don.trang_thai === 'Da_Huy') {
+      await conn.rollback();
+      return res.status(400).json({ message: "Đơn đặt phòng này đã được hủy trước đó" });
+    }
+
+    if (don.trang_thai === 'Da_Nhan_Phong' || don.trang_thai === 'Da_Thanh_Toan') {
+      await conn.rollback();
+      return res.status(400).json({ 
+        message: "Không thể hủy đơn đặt phòng khi bạn đang lưu trú hoặc đã hoàn tất thanh toán" 
+      });
+    }
+
+    // Cập nhật trạng thái thành Da_Huy
+    await conn.execute(
+      "UPDATE dat_phong SET trang_thai = 'Da_Huy', updated_at = NOW() WHERE id = ?",
+      [idDon]
+    );
+
+    // Giải phóng phòng nếu đã được phân bổ
+    const [phongDaGan] = await conn.execute(
+      "SELECT id_phong FROM phan_bo_phong WHERE id_dat_phong = ?",
+      [idDon]
+    );
+    for (const row of phongDaGan) {
+      await conn.execute("UPDATE phong SET trang_thai = 'Trong' WHERE id = ?", [row.id_phong]);
+    }
+
+    await conn.commit();
+    res.json({ success: true, message: "Hủy đặt phòng thành công!" });
+  } catch (err) {
+    await conn.rollback();
+    console.error(err);
+    res.status(500).json({ message: "Lỗi hủy đơn đặt phòng", error: err.message });
+  } finally {
+    conn.release();
+  }
+});
+
 
 // ======================== API DỊCH VỤ & GỌI DỊCH VỤ ========================
 

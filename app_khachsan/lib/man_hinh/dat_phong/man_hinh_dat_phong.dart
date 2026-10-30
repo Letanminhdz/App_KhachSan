@@ -1,3 +1,4 @@
+import '../../dich_vu/thong_bao_dich_vu.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../cau_hinh/mau_sac_app.dart';
@@ -238,6 +239,13 @@ class _ManHinhDatPhongTrangThai extends State<ManHinhDatPhong> {
         tenKhachHang: _dieuKhienTen.text.trim(),
         sdtKhachHang: _dieuKhienSdt.text.trim(),
         daDangNhap: xacThucProvider.daDangNhap,
+      );
+
+      // Bắn thông báo Local Notification lên thanh trạng thái (Mục 5.d)
+      ThongBaoDichVu.thongBaoDatPhongThanhCong(
+        idDon: donMoi.id,
+        tenPhong: widget.loaiPhong.tenLoai,
+        ngayNhan: DinhDang.dinhDangNgay(datPhongProvider.ngayNhanPhong),
       );
 
       if (mounted) {

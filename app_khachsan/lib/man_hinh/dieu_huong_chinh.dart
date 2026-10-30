@@ -1,3 +1,5 @@
+import '../dich_vu/bao_mat_dich_vu.dart';
+import 'xac_thuc/man_hinh_khoa_pin.dart';
 import 'package:flutter/material.dart';
 import '../cau_hinh/mau_sac_app.dart';
 import 'tai_khoan/man_hinh_tai_khoan.dart';
@@ -20,6 +22,24 @@ class DieuHuongChinh extends StatefulWidget {
 
 class _DieuHuongChinhTrangThai extends State<DieuHuongChinh> {
   int _viTriTabHienTai = 0;
+  bool _canKhoaPin = false;
+  bool _daKiemTraPin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _kiemTraKhoaPin();
+  }
+
+  Future<void> _kiemTraKhoaPin() async {
+    final daBat = await BaoMatDichVu.daBatKhoaPin();
+    if (mounted) {
+      setState(() {
+        _canKhoaPin = daBat;
+        _daKiemTraPin = true;
+      });
+    }
+  }
 
   void chonTab(int viTri) {
     if (mounted) {
@@ -38,6 +58,24 @@ class _DieuHuongChinhTrangThai extends State<DieuHuongChinh> {
 
   @override
   Widget build(BuildContext nguoiCanh) {
+    if (!_daKiemTraPin) {
+      return const Scaffold(
+        backgroundColor: MauSacApp.mauNen,
+        body: Center(child: CircularProgressIndicator(color: MauSacApp.mauChinh)),
+      );
+    }
+
+    if (_canKhoaPin) {
+      return ManHinhKhoaPin(
+        cheDo: CheDoPin.moKhoaApp,
+        onMoKhoaThanhCong: () {
+          setState(() {
+            _canKhoaPin = false;
+          });
+        },
+      );
+    }
+
     return Scaffold(
       body: IndexedStack(
         index: _viTriTabHienTai,

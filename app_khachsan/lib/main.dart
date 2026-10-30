@@ -1,3 +1,4 @@
+import 'dich_vu/thong_bao_dich_vu.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'cau_hinh/cau_hinh_api.dart';
@@ -9,6 +10,7 @@ import 'quan_ly_trang_thai/xac_thuc_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await CauHinhApi.khoiTao();
+  await ThongBaoDichVu.khoiTao();
   runApp(const UngDungDatPhongKhachSan());
 }
 

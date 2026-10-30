@@ -1,3 +1,4 @@
+import '../../dich_vu/thong_bao_dich_vu.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../cau_hinh/cau_hinh_api.dart';
@@ -22,6 +23,73 @@ class ManHinhChiTietDatPhong extends StatefulWidget {
 }
 
 class _ManHinhChiTietDatPhongTrangThai extends State<ManHinhChiTietDatPhong> {
+
+  Future<void> _xacNhanHuyDon() async {
+    final xacNhan = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: MauSacApp.mauLoi),
+            SizedBox(width: 8),
+            Text('Xác Nhận Hủy Đơn', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Bạn có chắc chắn muốn hủy đơn đặt phòng #${widget.idDon} không?\n\n'
+          'Sau khi hủy, phòng sẽ được giải phóng cho khách khác.',
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Giữ Đơn'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: MauSacApp.mauLoi),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xác Nhận Hủy'),
+          ),
+        ],
+      ),
+    );
+
+    if (xacNhan != true || !mounted) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+      await DatPhongDichVu.huyDatPhong(widget.idDon);
+
+      // Bắn thông báo Local Notification khi hủy phòng thành công (Mục 5.d)
+      ThongBaoDichVu.thongBaoHuyPhong(idDon: widget.idDon);
+      if (mounted) Navigator.pop(context); // Tắt loading dialog
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Hủy đơn đặt phòng thành công!'),
+            backgroundColor: MauSacApp.mauThanhCong,
+          ),
+        );
+        _taiChiTiet(); // Tải lại chi tiết đơn
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Tắt loading dialog
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: MauSacApp.mauLoi,
+          ),
+        );
+      }
+    }
+  }
+
   Map<String, dynamic>? _duLieu;
   bool _dangTai = true;
   String? _thongBaoLoi;
@@ -294,6 +362,28 @@ class _ManHinhChiTietDatPhongTrangThai extends State<ManHinhChiTietDatPhong> {
           conLai: conLai,
           trangThai: trangThai,
         ),
+
+        // 5. Nút Hủy Đơn Đặt Phòng (Chức năng CRUD: Hủy đơn khi chưa lưu trú)
+        if (trangThai == 'Moi_Dat' || trangThai == 'Da_Xac_Nhan') ...[
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: MauSacApp.mauLoi, width: 1.5),
+                foregroundColor: MauSacApp.mauLoi,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: const Icon(Icons.cancel_outlined, size: 20),
+              label: const Text(
+                'Hủy Đơn Đặt Phòng Này',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+              onPressed: _xacNhanHuyDon,
+            ),
+          ),
+        ],
       ],
     );
   }

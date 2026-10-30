@@ -1,3 +1,4 @@
+import '../../dich_vu/thong_bao_dich_vu.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -206,6 +207,12 @@ class _ManHinhDichVuTrangThai extends State<ManHinhDichVu> {
         soLuong: soLuong,
         soPhong: soPhongDaChon,
         idDatPhong: _donDangLuuTru?.id,
+      );
+
+      // Bắn thông báo Local Notification yêu cầu dịch vụ (Mục 5.d)
+      ThongBaoDichVu.thongBaoGoiDichVuThanhCong(
+        tenDichVu: dv.tenDichVu,
+        soPhong: soPhongDaChon,
       );
       if (mounted) {
         showDialog(

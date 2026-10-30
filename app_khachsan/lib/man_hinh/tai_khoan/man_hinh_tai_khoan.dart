@@ -1,3 +1,5 @@
+import '../../dich_vu/bao_mat_dich_vu.dart';
+import '../xac_thuc/man_hinh_khoa_pin.dart';
 import '../dich_vu/man_hinh_dich_vu.dart';
 import '../dieu_huong_chinh.dart';
 import '../../dich_vu/phong_dich_vu.dart';
@@ -170,6 +172,118 @@ class ManHinhTaiKhoan extends StatelessWidget {
               Navigator.push(
                 nguoiCanh,
                 MaterialPageRoute(builder: (nguoiCanhMoi) => const ManHinhDichVu()),
+              );
+            },
+          ),
+          _mucMenu(
+            icon: Icons.pin_outlined,
+            tieuDe: 'Bảo Mật Mã PIN',
+            moTa: 'Khóa ứng dụng bằng mã PIN 4 số',
+            khiNhan: () async {
+              final daBat = await BaoMatDichVu.daBatKhoaPin();
+              if (!nguoiCanh.mounted) return;
+
+              showModalBottomSheet(
+                context: nguoiCanh,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (ctx) => SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Row(
+                          children: [
+                            Icon(Icons.security_rounded, color: MauSacApp.mauChinh, size: 24),
+                            SizedBox(width: 10),
+                            Text(
+                              'Khóa Ứng Dụng (Mã PIN)',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          daBat
+                              ? 'Ứng dụng đang được bảo vệ bằng mã PIN 4 số. Bạn có thể đổi mã hoặc tắt bảo mật.'
+                              : 'Kích hoạt mã PIN 4 số để bảo vệ thông tin đặt phòng khi mở ứng dụng.',
+                          style: const TextStyle(fontSize: 13, color: MauSacApp.mauChuPhu),
+                        ),
+                        const SizedBox(height: 20),
+                        if (!daBat) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            height: 46,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.add_moderator_rounded, size: 20),
+                              label: const Text('Thiết Lập Mã PIN Mới'),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                Navigator.push(
+                                  nguoiCanh,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ManHinhKhoaPin(cheDo: CheDoPin.taoPinMoi),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ] else ...[
+                          SizedBox(
+                            width: double.infinity,
+                            height: 46,
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.password_rounded, size: 20),
+                              label: const Text('Đổi Mã PIN'),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                Navigator.push(
+                                  nguoiCanh,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ManHinhKhoaPin(cheDo: CheDoPin.taoPinMoi),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 46,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: MauSacApp.mauLoi),
+                                foregroundColor: MauSacApp.mauLoi,
+                              ),
+                              icon: const Icon(Icons.lock_open_rounded, size: 20),
+                              label: const Text('Tắt Khóa Mã PIN'),
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                Navigator.push(
+                                  nguoiCanh,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ManHinhKhoaPin(cheDo: CheDoPin.tatPin),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               );
             },
           ),
