@@ -5,7 +5,7 @@ services:
   db:
     image: mysql:8.0
     container_name: khachsan_db
-    restart: unless-stopped
+    restart: "no"
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: ql_khachsan
@@ -32,7 +32,7 @@ services:
       context: ./server_api
       dockerfile: Dockerfile
     container_name: khachsan_api
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       db:
         condition: service_healthy
